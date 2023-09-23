@@ -1,130 +1,19 @@
 const fs = require("fs")
 const express = require("express")
+const morgan = require("morgan")
+
+const carRouter = require("./routes/carRoute")
 const app = express()
-const port = process.env.port || 3000
+
 app.use(express.json())
+app.use(morgan("dev"))
 
-const cars = JSON.parse(
-    fs.readFileSync(`${__dirname}/data/cars.json`)
-)
+app.use((req, res, next) => {
+    req.requestTime = new Date().toISOString()
+    console.log(req.requestTime)
+    next()
+})
 
-const getAllData = (req, res) => {
-    res.status(200).json({
-        status: "success",
-        data: {
-            cars,
-        },
-    })
-}
+app.use("/api/v1/cars", carRouter)
 
-const getDataById = (req, res) => {
-    const id = req.params.id
-    const car = cars.find((el) => el.id === id)
-
-    if (!car) {
-        return res.status(404).json({
-            status: "failed",
-            message: `not found data with id ${id}`,
-        })
-    }
-
-    res.status(200).json({
-        status: "success",
-        data: {
-            car,
-        },
-    })
-}
-
-const createData = (req, res) => {
-    const newId = cars[cars.length - 1].id + 1
-    const newData = Object.assign(
-        { id: newId },
-        req.body
-    )
-
-    cars.push(newData)
-    fs.writeFile(
-        `${__dirname}/data/cars.json`,
-        JSON.stringify(cars),
-        (err) => {
-            res.status(201).json({
-                status: "success",
-                data: {
-                    cars: newData,
-                },
-            })
-        }
-    )
-}
-
-const editData = (req, res) => {
-    const id = req.params.id
-    const carsIndex = cars.findIndex(
-        (el) => el.id === id
-    )
-
-    if (carsIndex === -1) {
-        return res.status(404).json({
-            status: "failed",
-            message: `not found data with id ${id}`,
-        })
-    }
-
-    cars[carsIndex] = {
-        ...cars[carsIndex],
-        ...req.body,
-    }
-
-    fs.writeFile(
-        `${__dirname}/data/cars.json`,
-        JSON.stringify(cars),
-        (err) => {
-            res.status(200).json({
-                status: "success",
-                message: `success edit data`,
-                data: {
-                    car: cars[carsIndex],
-                },
-            })
-        }
-    )
-}
-
-const deleteData = (req, res) => {
-    const id = req.params.id
-    const carIndex = tours.findIndex(
-        (el) => el.id === id
-    )
-    if (carIndex === -1) {
-        return res.status(404).json({
-            status: "failed",
-            message: "data not found",
-        })
-    }
-    tours.splice(carIndex, 1)
-    fs.writeFile(
-        `${__dirname}/data/cars.json`,
-        JSON.stringify(tours),
-        (err) => {
-            res.status(200).json({
-                status: "success",
-                message: "success delete data",
-                data: null,
-            })
-        }
-    )
-}
-
-app.route("/api/v1/cars")
-    .get(getAllData)
-    .post(createData)
-
-app.route("/api/v1/cars/:id")
-    .get(getDataById)
-    .patch(editData)
-    .delete(deleteData)
-
-app.listen(port, () =>
-    console.log(`app running on port ${port}!..`)
-)
+module.exports = app
